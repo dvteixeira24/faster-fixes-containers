@@ -6,7 +6,7 @@ The web image also runs the one-shot Prisma migration service. The upstream [sel
 
 ## Publish an image
 
-1. Create a **public** GitHub repository named `faster-fixes-containers` under your account and push this directory to its `main` branch.
+1. This project is published at https://github.com/dvteixeira24/faster-fixes-containers. Push changes to `main` to build a new image.
 2. In the repository's **Settings → Secrets and variables → Actions → Variables**, set `PUBLIC_APP_URL` to the final HTTPS URL, for example `https://feedback.example.com`, and `PUBLIC_STORAGE_BASE_URL` to the public URL of your screenshot bucket. These values are embedded in the browser bundle during `next build`; changing `.env` later will not change them in an already built image. If the variables are unset, the build defaults to `http://localhost:3000` and an empty storage URL for local testing.
 3. Enable GitHub Actions if prompted. The [publish workflow](.github/workflows/publish.yml) builds on pushes to `main`, every Monday, and manual runs. Manual runs accept an upstream branch, tag, or commit. Each successful run publishes `ghcr.io/OWNER/faster-fixes-containers:latest` and `:upstream-<12-character-sha>`.
 4. In the package settings on GitHub, make the GHCR package public if GitHub initially creates it as private. A public repository does not always make its packages public automatically.
@@ -40,4 +40,4 @@ Set `GHCR_IMAGE=faster-fixes:local` in `.env` to use the local image with Compos
 
 ## Upstream changes and licensing
 
-The [patches](patches/) select the standard PostgreSQL adapter for production and disable the cloud billing plugin in self-hosted mode. They apply during the Docker build and fail visibly if upstream changes make them incompatible. The image contains the upstream application, which is [AGPL-3.0 licensed](https://github.com/manucoffin/faster-fixes/blob/main/LICENSE). Keep the upstream source and any modifications available when distributing or operating the image, in line with that license.
+The [patches](patches/) select the standard PostgreSQL adapter for production, disable the cloud billing plugin in self-hosted mode, and defer optional GitHub App credentials until that integration is used. They apply during the Docker build and fail visibly if upstream changes make them incompatible. The image contains the upstream application, which is [AGPL-3.0 licensed](https://github.com/manucoffin/faster-fixes/blob/main/LICENSE). Keep the upstream source and any modifications available when distributing or operating the image, in line with that license.
