@@ -2,7 +2,7 @@
 
 This repository builds [manucoffin/faster-fixes](https://github.com/manucoffin/faster-fixes) into a self-hosted web image, publishes it to GitHub Container Registry (GHCR), and provides a Compose deployment with PostgreSQL and self-hosted Inngest. Upstream source is checked out during the build; it is not vendored into this repository.
 
-The web image also runs the one-shot Prisma migration service. The upstream [self-hosting guide](https://www.faster-fixes.com/docs/self-hosting) describes the remaining required services: S3-compatible screenshot storage and transactional email. The current image uses Resend for email. The Compose file does not create external accounts or configure HTTPS.
+The web container applies pending Prisma migrations before starting the application. The upstream [self-hosting guide](https://www.faster-fixes.com/docs/self-hosting) describes the remaining required services: S3-compatible screenshot storage and transactional email. The current image uses Resend for email. The Compose file does not create external accounts or configure HTTPS.
 
 ## Publish an image
 
@@ -22,7 +22,9 @@ docker compose pull
 docker compose up -d
 ```
 
-Compose starts PostgreSQL and the self-hosted Inngest server, applies Prisma migrations, and then starts the web app. Inngest syncs `http://web:3000/api/inngest` across the Compose network and polls for updated functions every 60 seconds; no Inngest Cloud account or public Inngest endpoint is needed. Its state is stored in the `inngest_data` volume using the single-node SQLite and embedded Redis defaults described in [Inngest's self-hosting guide](https://www.inngest.com/docs/self-hosting). Back up that volume along with PostgreSQL. For higher reliability or scale, configure dedicated Redis and PostgreSQL for Inngest.
+Compose starts PostgreSQL and the self-hosted Inngest server, then the web container applies pending Prisma migrations before starting Next.js. Migration failure prevents the web server from starting, and already-applied migrations are safely skipped on later restarts. Keeping migration startup inside the long-running web service also avoids leaving a successfully exited init container that stack managers such as Dockge may report as an exited stack.
+
+Inngest syncs `http://web:3000/api/inngest` across the Compose network and polls for updated functions every 60 seconds; no Inngest Cloud account or public Inngest endpoint is needed. Its state is stored in the `inngest_data` volume using the single-node SQLite and embedded Redis defaults described in [Inngest's self-hosting guide](https://www.inngest.com/docs/self-hosting). Back up that volume along with PostgreSQL. For higher reliability or scale, configure dedicated Redis and PostgreSQL for Inngest.
 
 By default, the web app binds only to `127.0.0.1:3000` and the Inngest dashboard/API binds only to `127.0.0.1:8288` on the VPS. Put an HTTPS reverse proxy in front of the web app and set `DOMAIN_NAME`, `BASE_URL`, and `BETTER_AUTH_URL` in `.env` to match the public host. Do not expose the Inngest dashboard to the internet. To view it remotely, use an SSH tunnel such as `ssh -L 8288:127.0.0.1:8288 YOUR-VPS` and open `http://localhost:8288`. After deployment, visit `/login` and create the first account.
 

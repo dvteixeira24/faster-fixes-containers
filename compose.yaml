@@ -16,17 +16,6 @@ services:
       timeout: 5s
       retries: 12
 
-  migrate:
-    image: ${GHCR_IMAGE:?Set GHCR_IMAGE in .env}
-    restart: "no"
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql://fasterfixes:${POSTGRES_PASSWORD}@db:5432/fasterfixes?schema=public
-    command: ["pnpm", "--dir", "packages/database", "exec", "prisma", "migrate", "deploy"]
-    depends_on:
-      db:
-        condition: service_healthy
-
   inngest:
     image: inngest/inngest:latest
     restart: unless-stopped
@@ -48,6 +37,10 @@ services:
   web:
     image: ${GHCR_IMAGE:?Set GHCR_IMAGE in .env}
     restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - pnpm --dir packages/database exec prisma migrate deploy && exec pnpm --filter web start
     env_file: .env
     environment:
       DATABASE_URL: postgresql://fasterfixes:${POSTGRES_PASSWORD}@db:5432/fasterfixes?schema=public
@@ -60,8 +53,8 @@ services:
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-3000}:3000"
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
       inngest:
         condition: service_healthy
 
