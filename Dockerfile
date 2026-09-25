@@ -9,9 +9,10 @@ RUN corepack enable && corepack prepare pnpm@10.4.1 --activate
 COPY upstream/ /app/
 COPY patches/ /tmp/patches/
 
-# Fail the build if an upstream change makes either self-hosting patch obsolete.
+# Fail the build if an upstream change makes any compatibility patch obsolete.
 RUN patch -p1 < /tmp/patches/postgres-adapter.patch \
     && patch -p1 < /tmp/patches/self-hosted-auth.patch \
+    && patch -p1 < /tmp/patches/optional-github-app.patch \
     && pnpm install --frozen-lockfile
 
 ARG PUBLIC_APP_URL=http://localhost:3000
