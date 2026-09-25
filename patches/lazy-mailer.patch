@@ -1,0 +1,19 @@
+--- a/apps/web/src/lib/mailer/client.ts
++++ b/apps/web/src/lib/mailer/client.ts
+@@ -1,8 +1,15 @@
+ import "server-only";
+ 
+ import { createMailer } from "./mailer-factory";
++import type { Mailer } from "./types";
+ 
+-export const mailer = createMailer();
++let instance: Mailer | undefined;
++export const mailer: Mailer = new Proxy({} as Mailer, {
++  get(_target, prop) {
++    instance ??= createMailer();
++    return instance[prop as keyof Mailer];
++  },
++});
+ 
+ // Re-export types for convenience
+ export type {
