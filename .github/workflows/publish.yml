@@ -62,7 +62,7 @@ jobs:
             ${{ steps.image.outputs.name }}:latest
             ${{ steps.image.outputs.name }}:upstream-${{ steps.image.outputs.upstream_sha }}
           build-args: |
-            PUBLIC_APP_URL=${{ vars.PUBLIC_APP_URL || 'http://localhost:3000' }}
+            PUBLIC_APP_URL=${{ vars.PUBLIC_APP_URL || 'https://ff.d99.xyz' }}
             PUBLIC_STORAGE_BASE_URL=${{ vars.PUBLIC_STORAGE_BASE_URL }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
