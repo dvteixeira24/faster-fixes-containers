@@ -43,6 +43,8 @@ ENV NODE_ENV=production \
 
 RUN corepack enable && corepack prepare pnpm@10.4.1 --activate
 COPY --from=build /app /app
+# Fumadocs regenerates files in .source when the web server starts.
+RUN mkdir -p /app/apps/web/.source && chown -R node:node /app/apps/web/.source
 USER node
 EXPOSE 3000
 CMD ["pnpm", "--filter", "web", "start"]
