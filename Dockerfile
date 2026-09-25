@@ -13,6 +13,7 @@ COPY patches/ /tmp/patches/
 RUN patch -p1 < /tmp/patches/postgres-adapter.patch \
     && patch -p1 < /tmp/patches/self-hosted-auth.patch \
     && patch -p1 < /tmp/patches/optional-github-app.patch \
+    && patch -p1 < /tmp/patches/optional-encryption-keys.patch \
     && pnpm install --frozen-lockfile
 
 ARG PUBLIC_APP_URL=http://localhost:3000

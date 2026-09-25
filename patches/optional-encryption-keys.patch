@@ -1,0 +1,32 @@
+--- a/apps/web/src/utils/crypto/token-cipher.ts
++++ b/apps/web/src/utils/crypto/token-cipher.ts
+@@ -12,8 +12,7 @@
+ // each Tracker integration (Linear, Jira, …) gets encrypt/decrypt bound to its
+-// own key without re-loading or re-validating the key itself. See ADR 0003.
++// own key when encrypting or decrypting. See ADR 0003.
+ export function createTokenCipher(envVarName: string): TokenCipher {
+-  const key = loadHexKeyFromEnv(envVarName);
+   return {
+-    encrypt: (plain) => encryptWithKey(plain, key),
+-    decrypt: (payload) => decryptWithKey(payload, key),
++    encrypt: (plain) => encryptWithKey(plain, loadHexKeyFromEnv(envVarName)),
++    decrypt: (payload) => decryptWithKey(payload, loadHexKeyFromEnv(envVarName)),
+   };
+ }
+--- a/apps/web/src/server/slack/crypto.ts
++++ b/apps/web/src/server/slack/crypto.ts
+@@ -4,12 +4,10 @@
+   loadHexKeyFromEnv,
+ } from "@/utils/crypto/aes-gcm";
+ 
+-const key = loadHexKeyFromEnv("SLACK_TOKEN_ENCRYPTION_KEY");
+-
+ export function encryptSlackToken(plain: string): string {
+-  return encryptWithKey(plain, key);
++  return encryptWithKey(plain, loadHexKeyFromEnv("SLACK_TOKEN_ENCRYPTION_KEY"));
+ }
+ 
+ export function decryptSlackToken(payload: string): string {
+-  return decryptWithKey(payload, key);
++  return decryptWithKey(payload, loadHexKeyFromEnv("SLACK_TOKEN_ENCRYPTION_KEY"));
+ }
