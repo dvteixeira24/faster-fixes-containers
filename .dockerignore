@@ -1,0 +1,9 @@
+**/.git
+**/node_modules
+**/.next
+**/.turbo
+**/.env*
+upstream/docs
+upstream/.github
+README.md
+compose.yaml
