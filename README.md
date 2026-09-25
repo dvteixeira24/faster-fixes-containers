@@ -1,8 +1,8 @@
 # Faster Fixes containers
 
-This repository builds [manucoffin/faster-fixes](https://github.com/manucoffin/faster-fixes) into a self-hosted web image, publishes it to GitHub Container Registry (GHCR), and provides a Compose deployment with PostgreSQL. Upstream source is checked out during the build; it is not vendored into this repository.
+This repository builds [manucoffin/faster-fixes](https://github.com/manucoffin/faster-fixes) into a self-hosted web image, publishes it to GitHub Container Registry (GHCR), and provides a Compose deployment with PostgreSQL and self-hosted Inngest. Upstream source is checked out during the build; it is not vendored into this repository.
 
-The web image also runs the one-shot Prisma migration service. The upstream [self-hosting guide](https://www.faster-fixes.com/docs/self-hosting) describes the remaining required services: S3-compatible screenshot storage, Inngest for background jobs, and Resend or Plunk for email. The Compose file does not create these accounts or configure HTTPS.
+The web image also runs the one-shot Prisma migration service. The upstream [self-hosting guide](https://www.faster-fixes.com/docs/self-hosting) describes the remaining required services: S3-compatible screenshot storage and transactional email. The current image uses Resend for email. The Compose file does not create external accounts or configure HTTPS.
 
 ## Publish an image
 
@@ -15,14 +15,16 @@ The workflow uses the repository's `GITHUB_TOKEN`; no personal access token is n
 
 ## Deploy with Compose
 
-Copy `.env.example` to `.env` and fill in the image name, database password, domain, auth secret, storage credentials, Inngest keys, and email API key. Keep `.env` private. Use a long alphanumeric `POSTGRES_PASSWORD`; this Compose file inserts it into a PostgreSQL URL, so URI punctuation would need percent encoding. Generate `BETTER_AUTH_SECRET` with `openssl rand -base64 32`.
+Copy `.env.example` to `.env` and fill in the image name, database password, domain, auth secret, storage credentials, and Resend API key. Generate independent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` values with `openssl rand -hex 32`, then put both in `.env`. Keep `.env` private. Use a long alphanumeric `POSTGRES_PASSWORD`; this Compose file inserts it into a PostgreSQL URL, so URI punctuation would need percent encoding. Generate `BETTER_AUTH_SECRET` with `openssl rand -base64 32`.
 
 ```sh
 docker compose pull
 docker compose up -d
 ```
 
-Compose starts PostgreSQL, waits for it to become healthy, applies Prisma migrations, and then starts the web app. By default, the app binds only to `127.0.0.1:3000`. Put an HTTPS reverse proxy in front of it and set `DOMAIN_NAME`, `BASE_URL`, and `BETTER_AUTH_URL` in `.env` to match the public host. Configure Inngest to reach `https://YOUR-DOMAIN/api/inngest`. After deployment, visit `/login` and create the first account.
+Compose starts PostgreSQL and the self-hosted Inngest server, applies Prisma migrations, and then starts the web app. Inngest syncs `http://web:3000/api/inngest` across the Compose network and polls for updated functions every 60 seconds; no Inngest Cloud account or public Inngest endpoint is needed. Its state is stored in the `inngest_data` volume using the single-node SQLite and embedded Redis defaults described in [Inngest's self-hosting guide](https://www.inngest.com/docs/self-hosting). Back up that volume along with PostgreSQL. For higher reliability or scale, configure dedicated Redis and PostgreSQL for Inngest.
+
+By default, the web app binds only to `127.0.0.1:3000` and the Inngest dashboard/API binds only to `127.0.0.1:8288` on the VPS. Put an HTTPS reverse proxy in front of the web app and set `DOMAIN_NAME`, `BASE_URL`, and `BETTER_AUTH_URL` in `.env` to match the public host. Do not expose the Inngest dashboard to the internet. To view it remotely, use an SSH tunnel such as `ssh -L 8288:127.0.0.1:8288 YOUR-VPS` and open `http://localhost:8288`. After deployment, visit `/login` and create the first account.
 
 The `NEXT_PUBLIC_FF_API_ORIGIN` and `NEXT_PUBLIC_STORAGE_BASE_URL` values in the image come from the build variables above. For the client-side widget, point it at the same deployed origin. `NEXT_PUBLIC_IS_CLOUD` is fixed to `false` for this self-hosted image.
 
