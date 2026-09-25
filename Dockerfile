@@ -23,8 +23,13 @@ ENV NEXT_PUBLIC_FF_API_ORIGIN=${PUBLIC_APP_URL} \
     NEXT_PUBLIC_STORAGE_BASE_URL=${PUBLIC_STORAGE_BASE_URL} \
     NEXT_PUBLIC_IS_CLOUD=false
 
-# Prisma only needs a syntactically valid URL while generating its client.
+# Upstream initializes database, auth, and storage during page-data collection.
 RUN DATABASE_URL=postgresql://build:build@localhost:5432/build \
+    BETTER_AUTH_SECRET=build-only-placeholder-never-deploy \
+    BETTER_AUTH_URL="${PUBLIC_APP_URL}" \
+    R2_ACCOUNT_ID=build-only \
+    R2_ACCESS_KEY_ID=build-only \
+    R2_SECRET_ACCESS_KEY=build-only \
     pnpm exec turbo run build --filter=web...
 
 FROM node:22-bookworm-slim
