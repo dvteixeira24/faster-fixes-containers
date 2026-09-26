@@ -57,7 +57,7 @@
 +      }
 --- a/apps/web/src/app/api/auth/[...all]/route.ts
 +++ b/apps/web/src/app/api/auth/[...all]/route.ts
-@@ -1,4 +1,82 @@
+@@ -1,4 +1,81 @@
 -import { auth } from "@/server/auth";
 -import { toNextJsHandler } from "better-auth/next-js";
 -
@@ -133,12 +133,11 @@
 +    if (body.kind === "ambiguous" || body.kind === "unsupported") {
 +      return signupDenied();
 +    }
-+    if (
-+      body.kind === "email" &&
-+      z.email().safeParse(body.email).success &&
-+      !canSignUpWithEmail(body.email)
-+    ) {
-+      return signupDenied();
++    if (body.kind === "email") {
++      const email = body.email.trim();
++      if (z.email().safeParse(email).success && !canSignUpWithEmail(email)) {
++        return signupDenied();
++      }
 +    }
 +  }
 +

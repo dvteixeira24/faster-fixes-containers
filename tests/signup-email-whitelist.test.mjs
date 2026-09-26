@@ -26,6 +26,51 @@ const modulePath = path.join(tempDir, "signup-email-whitelist.ts");
 fs.writeFileSync(modulePath, addedFileLines.join("\n"));
 const { canSignUpWithEmail } = await import(pathToFileURL(modulePath).href);
 
+const routeStart = patch.indexOf(
+  "+++ b/apps/web/src/app/api/auth/[...all]/route.ts",
+);
+assert.notEqual(routeStart, -1, "auth route is present in patch");
+const routeContentStart = patch.indexOf("\n", routeStart) + 1;
+const routeAddedLines = patch
+  .slice(routeContentStart)
+  .split(/\r?\n/)
+  .filter((line) => line.startsWith("+"))
+  .map((line) => line.slice(1));
+const routeSource = routeAddedLines.join("\n").replace(/^import[\s\S]*?;\s*/gm, "");
+const routeModulePath = path.join(tempDir, "auth-route.ts");
+fs.writeFileSync(
+  routeModulePath,
+  `
+const matcherCalls: string[] = [];
+const auth = {};
+const isSignupEmailWhitelistEnabled = () => true;
+const canSignUpWithEmail = (email: string) => {
+  matcherCalls.push(email);
+  return false;
+};
+const SIGNUP_EMAIL_WHITELIST_ERROR = "Signup denied";
+const toNextJsHandler = () => ({
+  GET: () => new Response(null, { status: 200 }),
+  POST: async () => Response.json({ forwarded: true }, { status: 200 }),
+});
+const NextResponse = {
+  json: (body: unknown, init: ResponseInit) => Response.json(body, init),
+};
+const z = {
+  email: () => ({
+    safeParse: (value: string) => ({
+      success: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value),
+    }),
+  }),
+};
+${routeSource}
+export { matcherCalls };
+`,
+);
+const { POST: postAuthRequest, matcherCalls } = await import(
+  pathToFileURL(routeModulePath).href
+);
+
 const envKeys = [
   "SIGNUP_EMAIL_WHITELIST_ENABLED",
   "SIGNUP_EMAIL_WHITELIST",
@@ -68,4 +113,18 @@ test("rejects subdomains for a direct-domain wildcard", () => {
 test("does not interpret partial wildcard entries", () => {
   configureWhitelist("admin*@provider.com");
   assert.equal(canSignUpWithEmail("administrator@provider.com"), false);
+});
+
+test("checks padded signup emails against the whitelist before forwarding", async () => {
+  matcherCalls.length = 0;
+  const response = await postAuthRequest(
+    new Request("https://example.test/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: " unauthorized@provider.com " }),
+    }),
+  );
+
+  assert.equal(response.status, 403);
+  assert.deepEqual(matcherCalls, ["unauthorized@provider.com"]);
 });
