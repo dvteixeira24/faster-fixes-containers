@@ -15,6 +15,7 @@ RUN patch -p1 < /tmp/patches/postgres-adapter.patch \
     && patch -p1 < /tmp/patches/optional-github-app.patch \
     && patch -p1 < /tmp/patches/optional-encryption-keys.patch \
     && patch -p1 < /tmp/patches/lazy-mailer.patch \
+    && patch -p1 < /tmp/patches/signup-email-whitelist.patch \
     && pnpm install --frozen-lockfile
 
 ARG PUBLIC_APP_URL=http://localhost:3000
