@@ -6,11 +6,6 @@ on:
   schedule:
     - cron: "17 3 * * 1"
   workflow_dispatch:
-    inputs:
-      upstream_ref:
-        description: Faster Fixes branch, tag, or commit to build
-        default: main
-        required: true
 
 permissions:
   contents: read
@@ -26,14 +21,8 @@ jobs:
     steps:
       - name: Checkout this project
         uses: actions/checkout@v4
-
-      - name: Checkout Faster Fixes
-        uses: actions/checkout@v4
         with:
-          repository: manucoffin/faster-fixes
-          ref: ${{ inputs.upstream_ref || 'main' }}
-          path: upstream
-          persist-credentials: false
+          submodules: true
 
       - name: Set image tags
         id: image

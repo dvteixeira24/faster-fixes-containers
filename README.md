@@ -1,6 +1,6 @@
 # Faster Fixes containers
 
-This repository builds [manucoffin/faster-fixes](https://github.com/manucoffin/faster-fixes) into a self-hosted web image, publishes it to GitHub Container Registry (GHCR), and provides a Compose deployment with PostgreSQL and self-hosted Inngest. Upstream source is checked out during the build; it is not vendored into this repository.
+This repository builds [manucoffin/faster-fixes](https://github.com/manucoffin/faster-fixes) into a self-hosted web image, publishes it to GitHub Container Registry (GHCR), and provides a Compose deployment with PostgreSQL and self-hosted Inngest. The upstream source is tracked as a Git submodule at a pinned commit rather than copied into this repository.
 
 The web container applies pending Prisma migrations before starting the application. The upstream [self-hosting guide](https://www.faster-fixes.com/docs/self-hosting) describes the remaining required services: S3-compatible screenshot storage and transactional email. The current image uses Resend for email. The Compose file does not create external accounts or configure HTTPS.
 
@@ -8,10 +8,10 @@ The web container applies pending Prisma migrations before starting the applicat
 
 1. This project is published at https://github.com/dvteixeira24/faster-fixes-containers. Push changes to `main` to build a new image.
 2. In the repository's **Settings → Secrets and variables → Actions → Variables**, set `PUBLIC_APP_URL` to the final HTTPS URL, for example `https://feedback.example.com`, and `PUBLIC_STORAGE_BASE_URL` to the public URL of your screenshot bucket. These values are embedded in the browser bundle during `next build`; changing `.env` later will not change them in an already built image. If `PUBLIC_APP_URL` is unset, the build uses `http://localhost:3000`; set it to the final public URL before publishing an image for deployment. The storage URL remains empty until `PUBLIC_STORAGE_BASE_URL` is set.
-3. Enable GitHub Actions if prompted. The [publish workflow](.github/workflows/publish.yml) builds on pushes to `main`, every Monday, and manual runs. Manual runs accept an upstream branch, tag, or commit. Each successful run publishes `ghcr.io/OWNER/faster-fixes-containers:latest` and `:upstream-<12-character-sha>`.
+3. Enable GitHub Actions if prompted. The [publish workflow](.github/workflows/publish.yml) builds on pushes to `main`, every Monday, and manual runs. Each run builds the upstream commit recorded by this repository and publishes `ghcr.io/OWNER/faster-fixes-containers:latest` and `:upstream-<12-character-sha>`.
 4. In the package settings on GitHub, make the GHCR package public if GitHub initially creates it as private. A public repository does not always make its packages public automatically.
 
-The workflow uses the repository's `GITHUB_TOKEN`; no personal access token is needed to publish from this repository. Pin `GHCR_IMAGE` to an image digest in production if you want upgrades to happen only when you change the digest. Scheduled builds can fail when upstream changes break the small compatibility patches; the failed job is a signal to review upstream changes.
+The workflow uses the repository's `GITHUB_TOKEN`; no personal access token is needed to publish from this repository. Pin `GHCR_IMAGE` to an image digest in production if you want upgrades to happen only when you change the digest. Updating the upstream submodule pointer may require updating compatibility patches before the image builds successfully. Scheduled builds use the same pinned upstream revision until that pointer changes.
 
 ## Deploy with Compose
 
@@ -32,15 +32,31 @@ The `NEXT_PUBLIC_FF_API_ORIGIN` and `NEXT_PUBLIC_STORAGE_BASE_URL` values in the
 
 ## Build locally
 
+Clone the repository with its pinned upstream source:
+
 ```sh
-git clone https://github.com/manucoffin/faster-fixes.git upstream
+git clone --recurse-submodules https://github.com/dvteixeira24/faster-fixes-containers.git
+cd faster-fixes-containers
 docker build \
   --build-arg PUBLIC_APP_URL=http://localhost:3000 \
   --build-arg PUBLIC_STORAGE_BASE_URL=https://your-public-bucket.example.com \
   -t faster-fixes:local .
 ```
 
-Set `GHCR_IMAGE=faster-fixes:local` in `.env` to use the local image with Compose. The `upstream/` checkout is ignored by Git.
+For an existing checkout, run `git submodule update --init upstream` before building. Set `GHCR_IMAGE=faster-fixes:local` in `.env` to use the local image with Compose.
+
+## Update upstream
+
+Advance the submodule deliberately, then commit the new pointer in this repository:
+
+```sh
+git -C upstream fetch origin
+git -C upstream switch --detach origin/main
+git add upstream
+git commit -m "chore: update upstream submodule"
+```
+
+Review the [compatibility patches](patches/) against the new upstream revision before publishing an image.
 
 ## Upstream changes and licensing
 
