@@ -30,6 +30,23 @@ By default, the web app binds only to `127.0.0.1:3000` and the Inngest dashboard
 
 The `NEXT_PUBLIC_FF_API_ORIGIN` and `NEXT_PUBLIC_STORAGE_BASE_URL` values in the image come from the build variables above. For the client-side widget, point it at the same deployed origin. `NEXT_PUBLIC_IS_CLOUD` is fixed to `false` for this self-hosted image.
 
+### Restrict public signup
+
+Public signup remains open by default. To allow only specific email addresses to create accounts, set these values in `.env`:
+
+```dotenv
+SIGNUP_EMAIL_WHITELIST_ENABLED=true
+SIGNUP_EMAIL_WHITELIST=admin@example.com,developer@example.com
+```
+
+The list uses exact email addresses, separated by commas. Matching ignores letter case and surrounding whitespace. When the flag is `true` and the list is empty, no one can sign up through the public form or auth endpoint. Include the first account's email before enabling this on a new deployment. Existing users can still sign in, and admins can create users through the admin interface.
+
+After changing either value, recreate the web container to load the new environment:
+
+```sh
+docker compose up -d --force-recreate web
+```
+
 ## Build locally
 
 Clone the repository with its pinned upstream source:
@@ -60,4 +77,4 @@ Review the [compatibility patches](patches/) against the new upstream revision b
 
 ## Upstream changes and licensing
 
-The [patches](patches/) select the standard PostgreSQL adapter for production, disable the cloud billing plugin in self-hosted mode, and defer optional GitHub App and integration encryption credentials until those integrations are used, and create the email client only when mail is sent. They apply during the Docker build and fail visibly if upstream changes make them incompatible. The image contains the upstream application, which is [AGPL-3.0 licensed](https://github.com/manucoffin/faster-fixes/blob/main/LICENSE). Keep the upstream source and any modifications available when distributing or operating the image, in line with that license.
+The [patches](patches/) select the standard PostgreSQL adapter for production, disable the cloud billing plugin in self-hosted mode, and defer optional GitHub App and integration encryption credentials until those integrations are used, and create the email client only when mail is sent. The signup whitelist patch also enforces the optional public signup restriction. All patches apply during the Docker build and fail visibly if upstream changes make them incompatible. The image contains the upstream application, which is [AGPL-3.0 licensed](https://github.com/manucoffin/faster-fixes/blob/main/LICENSE). Keep the upstream source and any modifications available when distributing or operating the image, in line with that license.
