@@ -46,7 +46,7 @@
        const name = email.split("@")[0] || email;
 --- a/apps/web/src/app/api/auth/[...all]/route.ts
 +++ b/apps/web/src/app/api/auth/[...all]/route.ts
-@@ -1,4 +1,33 @@
+@@ -1,4 +1,35 @@
 -import { auth } from "@/server/auth";
 -import { toNextJsHandler } from "better-auth/next-js";
 -
@@ -55,6 +55,7 @@
 +import { canSignUpWithEmail, SIGNUP_EMAIL_WHITELIST_ERROR } from "@/server/auth/signup-email-whitelist";
 +import { toNextJsHandler } from "better-auth/next-js";
 +import { NextResponse } from "next/server";
++import { z } from "zod";
 +
 +const authHandlers = toNextJsHandler(auth);
 +export const { GET } = authHandlers;
@@ -73,6 +74,7 @@
 +      body !== null &&
 +      "email" in body &&
 +      typeof body.email === "string" &&
++      z.email().safeParse(body.email).success &&
 +      !canSignUpWithEmail(body.email)
 +    ) {
 +      return NextResponse.json(
