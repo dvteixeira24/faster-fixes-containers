@@ -128,3 +128,46 @@ test("checks padded signup emails against the whitelist before forwarding", asyn
   assert.equal(response.status, 403);
   assert.deepEqual(matcherCalls, ["unauthorized@provider.com"]);
 });
+
+test("forwards invalid signup emails without checking the whitelist", async () => {
+  matcherCalls.length = 0;
+  const response = await postAuthRequest(
+    new Request("https://example.test/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "not-an-email" }),
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(matcherCalls, []);
+});
+
+test("denies unsupported signup content types", async () => {
+  matcherCalls.length = 0;
+  const response = await postAuthRequest(
+    new Request("https://example.test/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: "email=unauthorized@provider.com",
+    }),
+  );
+
+  assert.equal(response.status, 403);
+  assert.deepEqual(matcherCalls, []);
+});
+
+test("denies signup forms with duplicate email values", async () => {
+  matcherCalls.length = 0;
+  const response = await postAuthRequest(
+    new Request("https://example.test/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body:
+        "email=unauthorized%40provider.com&email=another%40provider.com",
+    }),
+  );
+
+  assert.equal(response.status, 403);
+  assert.deepEqual(matcherCalls, []);
+});
