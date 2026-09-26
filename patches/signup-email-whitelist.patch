@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/apps/web/src/server/auth/signup-email-whitelist.ts
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,36 @@
 +export const SIGNUP_EMAIL_WHITELIST_ERROR =
 +  "Account creation is not available for this email address.";
 +
@@ -23,7 +23,19 @@
 +      .filter(Boolean),
 +  );
 +
-+  return allowedEmails.has(email.trim().toLowerCase());
++  const normalizedEmail = email.trim().toLowerCase();
++
++  if (allowedEmails.has(normalizedEmail)) {
++    return true;
++  }
++
++  const separatorIndex = normalizedEmail.lastIndexOf("@");
++  if (separatorIndex <= 0 || separatorIndex === normalizedEmail.length - 1) {
++    return false;
++  }
++
++  const domain = normalizedEmail.slice(separatorIndex + 1);
++  return allowedEmails.has(`*@${domain}`);
 +}
 --- a/apps/web/src/app/(auth)/signup/_features/signup-form/signup.trpc.mutation.ts
 +++ b/apps/web/src/app/(auth)/signup/_features/signup-form/signup.trpc.mutation.ts
@@ -45,7 +57,7 @@
 +      }
 --- a/apps/web/src/app/api/auth/[...all]/route.ts
 +++ b/apps/web/src/app/api/auth/[...all]/route.ts
-@@ -1,4 +1,82 @@
+@@ -1,4 +1,81 @@
 -import { auth } from "@/server/auth";
 -import { toNextJsHandler } from "better-auth/next-js";
 -
@@ -121,12 +133,11 @@
 +    if (body.kind === "ambiguous" || body.kind === "unsupported") {
 +      return signupDenied();
 +    }
-+    if (
-+      body.kind === "email" &&
-+      z.email().safeParse(body.email).success &&
-+      !canSignUpWithEmail(body.email)
-+    ) {
-+      return signupDenied();
++    if (body.kind === "email") {
++      const email = body.email.trim();
++      if (z.email().safeParse(email).success && !canSignUpWithEmail(email)) {
++        return signupDenied();
++      }
 +    }
 +  }
 +

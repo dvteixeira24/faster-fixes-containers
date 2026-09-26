@@ -36,10 +36,10 @@ Public signup remains open by default. To allow only specific email addresses to
 
 ```dotenv
 SIGNUP_EMAIL_WHITELIST_ENABLED=true
-SIGNUP_EMAIL_WHITELIST=admin@example.com,developer@example.com
+SIGNUP_EMAIL_WHITELIST=admin@example.com,*@provider.com
 ```
 
-The list uses exact email addresses, separated by commas. Matching ignores letter case and surrounding whitespace. When the flag is `true` and the list is empty, no one can sign up through the public form or auth endpoint. Include the first account's email before enabling this on a new deployment. Existing users can still sign in, and admins can create users through the admin interface.
+The comma-separated list accepts exact email addresses and direct-domain wildcards such as `*@provider.com`. Matching ignores letter case and surrounding whitespace. A domain wildcard accepts `person@provider.com` but not `person@mail.provider.com`; other wildcard forms are not supported. When the flag is `true` and the list is empty, no one can sign up through the public form or auth endpoint. Include the first account's email or domain before enabling this on a new deployment. Existing users can still sign in, and admins can create users through the admin interface.
 
 After changing either value, recreate the web container to load the new environment:
 
